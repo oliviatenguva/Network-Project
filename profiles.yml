@@ -1,7 +1,11 @@
 package_health:
+  target: dev
   outputs:
     dev:
       type: duckdb
-      path: packages.duckdb
+      # main.py sets DBT_DUCKDB_PATH to an absolute path, so dbt finds the
+      # database no matter which folder the flow is started from.
+      path: "{{ env_var('DBT_DUCKDB_PATH', 'packages.duckdb') }}"
       threads: 1
-  target: dev
+      settings:
+        TimeZone: UTC   # GitHub timestamps are UTC; date_trunc('month', ...) must use UTC too

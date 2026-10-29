@@ -1,0 +1,109 @@
+version: 2
+
+# Bot rule (macro is_bot in macros/run_time.sql), applied to commit authors,
+# PR authors, and reviewers:
+#     is_bot = user.type = 'Bot' OR user.login LIKE '%[bot]'
+# A missing user (commit email not linked to a GitHub account) is NOT a bot.
+
+models:
+  - name: stg_commits
+    description: One row per commit, latest fetched copy of each (repo, sha).
+    columns:
+      - name: repo
+        description: owner/name
+      - name: sha
+        description: Commit SHA (natural key).
+        data_tests: [unique, not_null]
+      - name: author_login
+        description: GitHub login of the commit author; NULL when the commit email is not linked to an account.
+      - name: is_bot
+        description: Bot rule applied to the commit author (false when author_login is NULL).
+      - name: committed_at
+        description: commit.author.date, UTC.
+        data_tests: [not_null]
+      - name: fetched_at
+        description: When the landing file was fetched.
+
+  - name: stg_pull_requests
+    description: One row per pull request, latest fetched copy of each (repo, number).
+    columns:
+      - name: repo
+        description: owner/name
+      - name: pr_number
+        description: PR number (natural key within a repo).
+        data_tests: [not_null]
+      - name: pr_key
+        description: repo || '#' || pr_number; unique across all repos.
+        data_tests: [unique, not_null]
+      - name: author_login
+        description: user.login of the PR author.
+      - name: is_bot
+        description: Bot rule applied to the PR author.
+      - name: state
+        description: open or closed (merged PRs are closed).
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['open', 'closed']
+      - name: created_at
+        description: When the PR was opened, UTC.
+        data_tests: [not_null]
+      - name: updated_at
+        description: Last activity on the PR, UTC.
+      - name: closed_at
+        description: When the PR was closed (merged or not); NULL if open.
+      - name: merged_at
+        description: When the PR was merged; NULL if not merged.
+      - name: fetched_at
+        description: When the landing file was fetched.
+
+  - name: stg_pr_reviews
+    description: One row per submitted review. PENDING reviews are dropped (no submitted_at).
+    columns:
+      - name: repo
+        description: owner/name
+      - name: review_id
+        description: Review id (natural key).
+        data_tests: [unique, not_null]
+      - name: pr_number
+        description: Trailing number of pull_request_url.
+      - name: pr_key
+        description: repo || '#' || pr_number; links the review to its PR.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_pull_requests')
+                field: pr_key
+      - name: reviewer_login
+        description: user.login of the reviewer.
+      - name: is_bot
+        description: Bot rule applied to the reviewer.
+      - name: state
+        description: Review outcome.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED']
+      - name: submitted_at
+        description: When the review was submitted, UTC.
+        data_tests: [not_null]
+      - name: fetched_at
+        description: When the landing file was fetched.
+
+  - name: stg_releases
+    description: One row per non-draft release.
+    columns:
+      - name: repo
+        description: owner/name
+      - name: release_id
+        description: Release id (natural key).
+        data_tests: [unique, not_null]
+      - name: tag_name
+        description: Git tag of the release.
+      - name: published_at
+        description: When the release was published, UTC.
+      - name: prerelease
+        description: True for release candidates / betas.
+      - name: fetched_at
+        description: When the landing file was fetched.

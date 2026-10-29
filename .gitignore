@@ -1,3 +1,19 @@
 storage*
 github*
 CLAUDE.md
+
+# Landed data, database, logs (never commit — see "No cruft")
+data/
+logs/
+*.duckdb
+*.duckdb.wal
+
+# Python / virtualenv
+.venv/
+__pycache__/
+*.pyc
+
+# dbt build output
+target/
+dbt_packages/
+.user.yml

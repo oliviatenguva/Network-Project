@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw tables written by Task 2 (main.py). One row per GitHub record; the full record is in `payload`.
+    schema: main
+    tables:
+      - name: raw_commits
+        description: One row per commit (id = sha).
+      - name: raw_pull_requests
+        description: One row per pull request (id = PR number).
+      - name: raw_pr_reviews
+        description: One row per PR review (id = review id).
+      - name: raw_releases
+        description: One row per release (id = release id).
