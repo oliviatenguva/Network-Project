@@ -1,7 +1,6 @@
 # Open Source Package Health: GitHub Data Pipeline
 
 DS 3022 Data Project 2. **Package set A:** `numpy/numpy`, `networkx/networkx`, `statsmodels/statsmodels`.
-The assignment text is in [ASSIGNMENT.md](ASSIGNMENT.md).
 
 ## Setup and run
 
