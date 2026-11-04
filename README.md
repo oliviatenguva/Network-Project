@@ -80,13 +80,13 @@ The incremental run made review calls only for new or updated PRs (135 of its 14
 **Bot rule** (macro `is_bot` in `macros/run_time.sql`, applied to commit authors, PR authors and reviewers):
 `is_bot = user.type = 'Bot' OR user.login LIKE '%[bot]'`. A commit whose email is not linked to a GitHub account has no author, so `is_bot` is false.
 
-**Open PRs and medians.** PRs still open at run time are kept in `fct_pull_requests` with `is_open = true` and are never given a fake close date. Their `hours_to_merge` and `hours_to_close` are NULL, so median time to merge only covers PRs that were actually merged; open PRs drop out instead of counting as zero. Likewise, a PR with no review yet has a NULL `hours_to_first_review` and drops out of the review medians, but counts as "not reviewed" in `reviewed_within_7d`.
+**Open PRs and medians.** PRs still open at run time are kept in `fct_pull_requests` with `is_open = true` and are never given a fake close date. Their `hours_to_merge` and `hours_to_close` are NULL, so median time to merge only covers PRs that were actually merged; open PRs drop out instead of counting as zero. Additionally, a PR with no review yet has a NULL `hours_to_first_review` and is not included with the review medians, but it counts as "not reviewed" in `reviewed_within_7d`.
 
 ## Task 4: Validation
 
 **Outliers.** Flagged records are **kept**.
 
-- **Time to merge.** Cutoff, per repo: `log10(hours) > Q3 + 1.5 × IQR`, which is about 176 days for numpy and 128 days for statsmodels. I used the log scale because merge times range from minutes to years; a cutoff on raw hours would flag about 10% of numpy's PRs. **38 PRs flagged**, for example numpy #26214 (907 days), numpy #26255 (895 days) and statsmodels #9297 (787 days). networkx has none, because its merges are slow across the board. The full list is in `logs/4_validate.log`.
+- **Time to merge.** Cutoff, per repo: `log10(hours) > Q3 + 1.5 × IQR`, which is about 176 days for numpy and 128 days for statsmodels. I used the log scale because merge times range from minutes to years. A cutoff on raw hours would flag about 10% of numpy's PRs. **38 PRs flagged**, for example numpy #26214 (907 days), numpy #26255 (895 days) and statsmodels #9297 (787 days). networkx has none, because its merges are slow across the board. The full list is in `logs/4_validate.log`.
 - **Weekly commits.** Cutoff, per repo: `commits > Q3 + 3 × IQR`, over every complete week including weeks with zero commits. **11 weeks flagged:** 9 statsmodels weeks from July to October 2026 (up to 362 commits, against a typical week of 6), one numpy week (171) and one networkx week (29). The statsmodels burst is not bots: one maintainer (`bashtage`) made over 1,500 commits after July 2026.
 - **Why keep them.** They are real events, not data errors: long-running PRs, and a real surge of work on statsmodels. Every scored metric is a median, share or slope, so a few extreme values barely change it.
 
@@ -113,7 +113,7 @@ The incremental run made review calls only for new or updated PRs (135 of its 14
 **Trend component.** `commit_trend` and `contributor_trend` measure whether activity is growing or shrinking over the window.
 
 **Scoring.**
-1. Each metric is min-max scaled across the three repos to 0–1, flipped when lower is healthier, so 1 is always best.
+1. Each metric is min-max scaled across the three repos to 0–1, flipped when lower is healthier, so 1 is always the best.
 2. Metrics are averaged within their dimension and multiplied by 100 to give the dimension subscore.
 3. The score is the weighted sum of the subscores.
 
@@ -134,13 +134,13 @@ Each repo has the same color in every plot: numpy blue, networkx orange, statsmo
 
 ![Dimension profile](plots/1_dimension_profile.png)
 
-The profiles explain why the ranking is not a simple "big project wins". numpy is strong almost everywhere except its flat-to-declining commit trend. statsmodels has the most uneven profile: best on throughput and activity, worst on responsiveness, because PRs are merged quickly without formal review. networkx is the mirror image: best on responsiveness, but last on throughput and backlog, which reflects careful review that turns into slow merges and a stale queue. numpy (64.1) and statsmodels (57.4) are separated by only 6.7 points, so a modest change in the responsiveness or activity weight would swap them. networkx is clearly third under any reasonable weighting.
+The profiles explain why the ranking is not a just the biggest project being the best. numpy is strong almost everywhere except its flat-to-declining commit trend. statsmodels has the most uneven profile: best on throughput and activity, worst on responsiveness, because PRs are merged quickly without formal review. networkx is the opposite: best on responsiveness, but last on throughput and backlog, which reflects careful review that turns into slow merges and a stale queue. numpy (64.1) and statsmodels (57.4) are separated by only 6.7 points, so a smaller change in the responsiveness or activity weight would swap them. networkx is clearly third under any reasonable weighting.
 
 **[2_monthly_trends.png](plots/2_monthly_trends.png)**
 
 ![Monthly trends](plots/2_monthly_trends.png)
 
-numpy's PR volume and active authors climb steadily through 2026 (from about 40 to about 80 authors a month), even though its commit count is flat. Growth there shows up as more contributors rather than more commits. statsmodels is quiet until mid-2026, then PRs opened, PRs merged and commits all jump at once. That is the maintainer-driven burst flagged in Task 4. networkx is the steadiest of the three, but its merge ratio drifts down from about 0.9 to 0.6 over the window, matching its growing stale backlog. statsmodels' median time to first review swings across three orders of magnitude, with gaps, because many months have only a handful of reviewed PRs; this is why the score uses window-wide medians rather than monthly values.
+numpy's PR volume and active authors climb steadily through 2026 (from about 40 to about 80 authors a month), even though its commit count is flat. Growth there shows up as more contributors rather than more commits. statsmodels is quiet until mid-2026, then PRs opened, PRs merged and commits all jump at once. That is the maintainer-driven burst flagged in Task 4. networkx is the steadiest of the three, but its merge ratio falls down from about 0.9 to 0.6 over the window, matching its growing stale backlog. statsmodels' median time to first review swings across three orders of magnitude, with gaps, because many months have only a handful of reviewed PRs; this is why the score uses window-wide medians rather than monthly values.
 
 **[3_review_vs_merge.png](plots/3_review_vs_merge.png)**
 
