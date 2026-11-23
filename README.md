@@ -1,6 +1,6 @@
 # Open Source Package Health: GitHub Data Pipeline
 
-DS 3022 Data Project 2. **Package set A:** `numpy/numpy`, `networkx/networkx`, `statsmodels/statsmodels`.
+This project is an automated data pipeline that answers "how healthy are these open-source communities?" for numpy, networkx, and statsmodels. A single Prefect flow extracts about 34 months of commits, pull requests, reviews, and releases from the GitHub REST API (with pagination, rate-limit handling, retries, and resumable runs), loads the raw JSON into DuckDB with idempotent upserts, builds tested staging, fact, and mart models in dbt, validates the pipeline end to end in Python, scores each repo across six weighted health dimensions, and produces three visualizations.
 
 ## Setup and run
 
